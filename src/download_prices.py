@@ -1,4 +1,4 @@
-"""Stage 1: download and inspect Apple daily prices, without calculating returns."""
+"""Compare Apple buy-and-hold strategy with a moving average strategy, including risk and trading costs."""
 
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -43,7 +43,6 @@ def main():
     output_folder.mkdir(parents=True, exist_ok=True)
     output_path = output_folder / "AAPL_2025.csv"
     prices.to_csv(output_path, index_label="Date")
-    print(f"Saved full table to: {output_path}")
     prices["MA20"] = prices["Adj Close"].rolling(window=20).mean()
     prices["MA50"] = prices["Adj Close"].rolling(window=50).mean()
     print("First date MA50 is available:", prices["MA50"].first_valid_index())
@@ -59,15 +58,23 @@ def main():
     comparison = prices.loc[prices["MA50"].notna()].copy()
     comparison_returns = comparison[["Daily Return", "Strategy Return", "Net Strategy Return"]].copy()
     comparison_returns.iloc[0] = 0
+    comparison_returns.loc[
+    comparison_returns.index[0], "Daily Return"] = -cost_rate
     comparison_values = (100 * (1 + comparison_returns).cumprod())
-    comparison_values.columns = ["Buy and Hold", "MA Strategy", "MA Strategy After Costs"]
+    comparison_values.columns = ["Buy and Hold After Costs", "MA Strategy", "MA Strategy After Costs"]
+    comparison_total_returns = comparison_values.iloc[-1] / 100 - 1
+    print("Total return over the shared period:")
+    print(comparison_total_returns.map(lambda value: f"{value:.2%}"))
     comparison_peaks = comparison_values.cummax()
     comparison_drawdowns = comparison_values / comparison_peaks - 1
     print("Maximum drawdown over the shared period:")
     print(comparison_drawdowns.min().map(lambda value: f"{value:.2%}"))
     daily_volatility = comparison_returns.iloc[1:].std()
-    print("Daily volatility:")
+    daily_volatility.index = comparison_values.columns
+    print("Daily volatility over the shared period:")
     print(daily_volatility.map(lambda value: f"{value:.2%}"))
+    print(f"Saved full table to: {output_path}")
+
     
     comparison_values.plot(
     title="Apple: comparison from 17 March 2025",
