@@ -68,8 +68,7 @@ def main():
     daily_volatility = comparison_returns.iloc[1:].std()
     print("Daily volatility:")
     print(daily_volatility.map(lambda value: f"{value:.2%}"))
-    prices["Strategy Value"] = (100 * (1 + prices["Strategy Return"].fillna(0)).cumprod())
-
+    
     comparison_values.plot(
     title="Apple: comparison from 17 March 2025",
     ylabel="Investment value (USD)",
@@ -79,14 +78,6 @@ def main():
     plt.tight_layout()
     plt.show()
     
-    prices[["Investment Value", "Strategy Value"]].plot(
-    title="Apple: buy-and-hold vs moving-average strategy",
-    ylabel="Investment value (USD)",
-    xlabel="Date",
-    figsize=(10, 5),)
-
-    plt.tight_layout()
-    plt.show()
     
     prices[["Adj Close", "MA20", "MA50"]].plot(
     title="Apple: adjusted price and moving averages",
@@ -97,20 +88,12 @@ def main():
     plt.tight_layout()
     plt.show()
     
-    prices["Investment Value"].plot(
-        title="Apple: growth of $100 during 2025",
-        ylabel="Investment value (USD)",
-        xlabel="Date",
-        figsize=(10, 5),)
-
-    plt.tight_layout()
-    plt.show()
     
-    prices["Drawdown"].mul(100).plot(
-        title="Apple: drawdown during 2025",
-        ylabel="Below previous peak (%)",
-        xlabel="Date",
-        figsize=(10, 4),)
+    comparison_drawdowns.mul(100).plot(
+    title="Apple: drawdowns over the shared period",
+    ylabel="Below previous peak (%)",
+    xlabel="Date",
+    figsize=(10, 4),)
 
     plt.tight_layout()
     plt.show()
