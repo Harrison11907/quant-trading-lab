@@ -46,7 +46,34 @@ def main():
     print(f"Saved full table to: {output_path}")
     prices["MA20"] = prices["Adj Close"].rolling(window=20).mean()
     prices["MA50"] = prices["Adj Close"].rolling(window=50).mean()
+    print("First date MA50 is available:", prices["MA50"].first_valid_index())
     prices["Signal"] = (prices["MA20"] > prices["MA50"]).astype(int)
+    prices["Position"] = prices["Signal"].shift(1).fillna(0)
+    prices["Strategy Return"] = (prices["Position"] * prices["Daily Return"])
+    comparison = prices.loc[prices["MA50"].notna()].copy()
+    comparison_returns = comparison[["Daily Return", "Strategy Return"]].copy()
+    comparison_returns.iloc[0] = 0
+    comparison_values = (100 * (1 + comparison_returns).cumprod())
+    comparison_values.columns = ["Buy and Hold", "MA Strategy"]
+    prices["Strategy Value"] = (100 * (1 + prices["Strategy Return"].fillna(0)).cumprod())
+
+    comparison_values.plot(
+    title="Apple: comparison from 17 March 2025",
+    ylabel="Investment value (USD)",
+    xlabel="Date",
+    figsize=(10, 5),)
+
+    plt.tight_layout()
+    plt.show()
+    
+    prices[["Investment Value", "Strategy Value"]].plot(
+    title="Apple: buy-and-hold vs moving-average strategy",
+    ylabel="Investment value (USD)",
+    xlabel="Date",
+    figsize=(10, 5),)
+
+    plt.tight_layout()
+    plt.show()
     
     prices[["Adj Close", "MA20", "MA50"]].plot(
     title="Apple: adjusted price and moving averages",
