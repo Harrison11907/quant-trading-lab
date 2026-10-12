@@ -49,12 +49,25 @@ def main():
     print("First date MA50 is available:", prices["MA50"].first_valid_index())
     prices["Signal"] = (prices["MA20"] > prices["MA50"]).astype(int)
     prices["Position"] = prices["Signal"].shift(1).fillna(0)
+    prices["Trade"] = prices["Position"].diff().abs()
+    prices.loc[prices.index[0], "Trade"] = prices["Position"].iloc[0]
     prices["Strategy Return"] = (prices["Position"] * prices["Daily Return"])
+    cost_rate = 0.001  # 0.1% per buy or sell
+    prices["Trading Cost"] = prices["Trade"] * cost_rate
+    prices["Net Strategy Return"] = (
+    prices["Strategy Return"] - prices["Trading Cost"])
     comparison = prices.loc[prices["MA50"].notna()].copy()
-    comparison_returns = comparison[["Daily Return", "Strategy Return"]].copy()
+    comparison_returns = comparison[["Daily Return", "Strategy Return", "Net Strategy Return"]].copy()
     comparison_returns.iloc[0] = 0
     comparison_values = (100 * (1 + comparison_returns).cumprod())
-    comparison_values.columns = ["Buy and Hold", "MA Strategy"]
+    comparison_values.columns = ["Buy and Hold", "MA Strategy", "MA Strategy After Costs"]
+    comparison_peaks = comparison_values.cummax()
+    comparison_drawdowns = comparison_values / comparison_peaks - 1
+    print("Maximum drawdown over the shared period:")
+    print(comparison_drawdowns.min().map(lambda value: f"{value:.2%}"))
+    daily_volatility = comparison_returns.iloc[1:].std()
+    print("Daily volatility:")
+    print(daily_volatility.map(lambda value: f"{value:.2%}"))
     prices["Strategy Value"] = (100 * (1 + prices["Strategy Return"].fillna(0)).cumprod())
 
     comparison_values.plot(
