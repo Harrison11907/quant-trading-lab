@@ -42,42 +42,81 @@ def main():
     output_folder = project_folder / "data" / "raw"
     output_folder.mkdir(parents=True, exist_ok=True)
     output_path = output_folder / "AAPL_2025.csv"
-    prices.to_csv(output_path, index_label="Date")
     prices["MA20"] = prices["Adj Close"].rolling(window=20).mean()
     prices["MA50"] = prices["Adj Close"].rolling(window=50).mean()
     print("First date MA50 is available:", prices["MA50"].first_valid_index())
     prices["Signal"] = (prices["MA20"] > prices["MA50"]).astype(int)
+    # Apply yesterday's closing signal at today's open.
     prices["Position"] = prices["Signal"].shift(1).fillna(0)
+    prices["Overnight Position"] = prices["Position"].shift(1).fillna(0)
+
+    # Put Open on the same adjustment basis as Adj Close.
+    prices["Adjusted Open"] = prices["Open"] * prices["Adj Close"] / prices["Close"]
+    prices["Overnight Return"] = (
+        prices["Adjusted Open"] / prices["Adj Close"].shift(1) - 1
+    )
+    prices["Intraday Return"] = prices["Adj Close"] / prices["Adjusted Open"] - 1
+    overnight_factor = (
+        1 + prices["Overnight Position"] * prices["Overnight Return"].fillna(0)
+    )
+    intraday_factor = 1 + prices["Position"] * prices["Intraday Return"]
     prices["Trade"] = prices["Position"].diff().abs()
     prices.loc[prices.index[0], "Trade"] = prices["Position"].iloc[0]
-    prices["Strategy Return"] = (prices["Position"] * prices["Daily Return"])
+    prices["Strategy Return"] = overnight_factor * intraday_factor - 1
     cost_rate = 0.001  # 0.1% per buy or sell
     prices["Trading Cost"] = prices["Trade"] * cost_rate
+    # Costs are charged at the open, between the overnight and intraday moves.
+    # Each entry/exit deducts 0.1% of portfolio value at that opening trade.
     prices["Net Strategy Return"] = (
-    prices["Strategy Return"] - prices["Trading Cost"])
-    comparison = prices.loc[prices["MA50"].notna()].copy()
+        overnight_factor * (1 - prices["Trading Cost"]) * intraday_factor - 1
+    )
+    # First evaluation day is the open AFTER the first valid MA50 signal.
+    ready_at_open = prices["MA50"].shift(1).notna()
+    comparison = prices.loc[ready_at_open].copy()
+    if comparison.empty:
+        raise SystemExit("Not enough observations for a next-open comparison.")
+    print("Number of buys and sells:", int(comparison["Trade"].sum()))
+    print("Percentage of days invested:",f"{comparison['Position'].mean():.1%}")
     comparison_returns = comparison[["Daily Return", "Strategy Return", "Net Strategy Return"]].copy()
-    comparison_returns.iloc[0] = 0
-    comparison_returns.loc[
-    comparison_returns.index[0], "Daily Return"] = -cost_rate
+    # Buy-and-hold enters at that first open: no preceding overnight return.
+    comparison_returns.loc[comparison_returns.index[0], "Daily Return"] = (
+        (1 - cost_rate) * (1 + comparison["Intraday Return"].iloc[0]) - 1)
     comparison_values = (100 * (1 + comparison_returns).cumprod())
     comparison_values.columns = ["Buy and Hold After Costs", "MA Strategy", "MA Strategy After Costs"]
     comparison_total_returns = comparison_values.iloc[-1] / 100 - 1
-    print("Total return over the shared period:")
-    print(comparison_total_returns.map(lambda value: f"{value:.2%}"))
-    comparison_peaks = comparison_values.cummax()
+    # Include the original $100 budget as a peak, including initial entry costs.
+    comparison_peaks = comparison_values.cummax().clip(lower=100)
     comparison_drawdowns = comparison_values / comparison_peaks - 1
-    print("Maximum drawdown over the shared period:")
-    print(comparison_drawdowns.min().map(lambda value: f"{value:.2%}"))
-    daily_volatility = comparison_returns.iloc[1:].std()
+    # Every row now contains an earned return, including the first intraday period.
+    daily_volatility = comparison_returns.std()
     daily_volatility.index = comparison_values.columns
-    print("Daily volatility over the shared period:")
-    print(daily_volatility.map(lambda value: f"{value:.2%}"))
+    # One row per approach; align each metric using the approach names.
+    results = comparison_values.iloc[-1].to_frame(name="Final Value ($)")
+    results["Total Return"] = comparison_total_returns
+    results["Max Drawdown"] = comparison_drawdowns.min()
+    results["Daily Volatility"] = daily_volatility
+
+    print("\nResults over the shared period:")
+    print(results.to_string(formatters={
+        "Final Value ($)": lambda value: f"{value:.2f}",
+        "Total Return": lambda value: f"{value:.2%}",
+        "Max Drawdown": lambda value: f"{value:.2%}",
+        "Daily Volatility": lambda value: f"{value:.2%}",
+    }))
+
+    results_folder = project_folder / "results"
+    results_folder.mkdir(exist_ok=True)
+    results.to_csv(results_folder / "AAPL_2025_summary.csv", index_label="Approach")
+    print("Saved results table to:", results_folder / "AAPL_2025_summary.csv")
+    prices.to_csv(output_path, index_label="Date")
     print(f"Saved full table to: {output_path}")
+    print("Execution: previous closing signal, next opening trade; adjusted-price model.")
+    print("Cash earns zero; costs are 0.1% per entry/exit; no forced final sale.")
+    print("Comparison starts at open:", comparison.index[0].date())
 
     
     comparison_values.plot(
-    title="Apple: comparison from 17 March 2025",
+    title=f"Apple: next-open comparison from {comparison.index[0].date()}",
     ylabel="Investment value (USD)",
     xlabel="Date",
     figsize=(10, 5),)

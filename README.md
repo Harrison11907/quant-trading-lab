@@ -1,18 +1,23 @@
-# Quant Trading Strategy & Backtesting Lab
+﻿# Quant Trading Strategy & Backtesting Lab
 
-A Python project exploring how rule-based trading strategies perform on historical market data, built step by step while learning the finance and programming behind each decision.
+I'm building this Python project to learn how to test trading strategies and understand the finance behind the results.
 
-The central question is: can a simple trading strategy improve on buying and holding an asset after accounting for risk and trading costs?
+My main question is whether a simple trading rule can improve on buying and holding an asset once I account for risk and trading costs. I'm interested in the trade-off between returns and losses along the way, rather than just which approach finishes with the most money.
 
-The goal is to build a research tool that can:
+## What I've built so far
 
-- Load and inspect historical market data, including adjustments for stock splits and dividends.
-- Generate trading signals from rules such as moving-average crossovers, momentum, and mean reversion.
-- Backtest those rules with realistic trade timing and transaction costs.
-- Compare strategy performance with a buy-and-hold benchmark.
-- Measure returns, volatility, and drawdowns, and explain the results through charts.
-- Evaluate strategies on data outside the period used to develop them, reducing the risk of overfitting.
+I started with fictional prices to understand daily returns and compounding, then moved on to Apple historical data for 2025. My first backtest compares a 20-day/50-day moving-average strategy with buy-and-hold.
 
-The project currently explores Apple price data, investment returns, drawdowns, and moving-average signals. Backtesting and broader strategy comparisons are planned next.
+The script uses closing-price signals to trade at the next open, includes a simple trading-cost assumption, and compares both approaches over the same evaluation period. I use charts and a results table to examine total return, daily volatility, and maximum drawdown.
 
-The emphasis is on understanding why each calculation and trading rule works, and what its limitations are, before extending the code.
+I've written up what I found and the assumptions behind the test in [FINDINGS.md](FINDINGS.md).
+
+## Where I want to take it
+
+- Test the same rule on other periods and assets.
+- Explore other rules, such as momentum and mean reversion.
+- Improve the execution and cost assumptions.
+- Evaluate strategies on separate data from the period used to develop them.
+- Make the results easier to explore and compare.
+
+I'm building this step by step so I can understand and explain each calculation before adding more complexity. Finding that a strategy doesn't outperform is still a useful result.
