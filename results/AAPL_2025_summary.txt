@@ -1,0 +1,4 @@
+                         Final Value ($) Total Return Max Drawdown Daily Volatility
+Buy and Hold After Costs         $109.60        9.60%      -30.73%            2.05%
+MA Strategy                      $105.81        5.81%      -21.40%            1.17%
+MA Strategy After Costs          $105.07        5.07%      -21.95%            1.17%

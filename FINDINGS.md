@@ -6,23 +6,31 @@ I wanted to see how a strategy based on 20-day and 50-day moving averages compar
 
 ## How I tested it
 
-I used daily Apple data from Yahoo Finance for 2025 and calculated the moving averages from adjusted closing prices. My rule is to hold Apple when MA20 is above MA50 and stay in cash otherwise.
+I downloaded daily Apple data from Yahoo Finance from September 2024 through December 2025 and calculated the moving averages from adjusted closing prices. My rule is to hold Apple when MA20 is above MA50 and stay in cash otherwise.
 
 I calculate the signal at the close and model the trade at the next trading day's open. This avoids assuming I can act on a closing signal at the same closing price.
 
-I start both approaches with a $100 budget at the open after the first valid MA50 observation, and measure performance through the last downloaded close. I use the earlier January-to-March prices to prepare the averages, without including that waiting period in the comparison.
+I evaluate calendar year 2025, starting both approaches with a $100 cash budget at the first trading open on 2 January and measuring performance through the final trading close of the year. September-to-December 2024 provides warm-up data, so the averages are ready before the test begins. If the strategy starts with a buy signal, it buys at the first test open and pays the entry cost; it does not earn returns from before that open.
 
 I put opening prices on the same adjustment basis as closing prices using `Open * Adj Close / Close`. This models dividend-reinvested performance using adjusted prices; I don't separately track dividend cash or share quantities. The strategy earns overnight returns only if it already holds shares, and earns intraday returns if it holds shares after the opening trade.
 
 ## What I found
 
-In the run I checked, the MA strategy earned less than buy-and-hold over the shared period, but had a smaller maximum drawdown and lower daily volatility. It made three transactions (buy, sell, buy), and was invested after the open on approximately 64% of the evaluation days. The cost assumption only slightly reduced its performance because it traded infrequently.
+My saved full-year results were:
+
+| Approach | Final value | Total return | Maximum drawdown | Daily volatility |
+|---|---:|---:|---:|---:|
+| Buy-and-hold after costs | $109.60 | 9.60% | -30.73% | 2.05% |
+| MA strategy before costs | $105.81 | 5.81% | -21.40% | 1.17% |
+| MA strategy after costs | $105.07 | 5.07% | -21.95% | 1.17% |
+
+The MA strategy earned less than buy-and-hold, but had a smaller maximum drawdown and lower daily volatility. Trading costs reduced the strategy's total return by about 0.74 percentage points. Earlier trade-count and exposure observations came from the March-start test and aren't used to describe this full-year result.
 
 My initial chart made the strategy look more successful. It stayed in cash while waiting for 50 observations, whereas buy-and-hold was invested from January. Once I compared them from a shared starting point, the result changed. This helped me understand why the data preparation period and evaluation period need to be separated.
 
 My conclusion from this experiment is that the strategy reduced risk on the measures I checked, but gave up some return. It wasn't better on every measure. Spending time in cash reduced its exposure to Apple, although which days it held shares also mattered.
 
-The script prints the current results table and saves it to `results/AAPL_2025_summary.csv`. The table contains final value, total return, maximum drawdown, and daily volatility. Percentage values are stored as decimals in the CSV.
+The script prints the current results table and saves it to `results/AAPL_2025_summary.csv` for numeric analysis and `results/AAPL_2025_summary.txt` for reading. The table contains final value, total return, maximum drawdown, and daily volatility. Percentage values are stored as decimals in the CSV. The downloaded dataset's filename includes the warm-up start and exclusive end date to distinguish it from the test-period summaries.
 
 ## Assumptions and limitations
 
@@ -36,4 +44,4 @@ The script prints the current results table and saves it to `results/AAPL_2025_s
 
 ## What I'd do next
 
-I'd review the implementation and then test a separate period, using earlier prices to prepare the averages and keeping the strategy settings unchanged. That would help me see whether the same trade-off appears outside the period I've already explored.
+Next I want to add a mean-reversion strategy and compare it using the same evaluation period, execution timing, and cost assumptions. I also want to test unchanged rules on a separate period to see whether the findings hold outside the data I've already explored.
